@@ -150,6 +150,9 @@ func TestProxyDial(t *testing.T) {
 
 	cstDialer := cstDialer // make local copy for modification on next line.
 	cstDialer.Proxy = http.ProxyURL(surl)
+	cstDialer.ProxyConnectHeader = map[string][]string{
+		"User-Agents": {"xxx"},
+	}
 
 	connect := false
 	origHandler := s.Server.Config.Handler
@@ -160,6 +163,10 @@ func TestProxyDial(t *testing.T) {
 			if r.Method == http.MethodConnect {
 				connect = true
 				w.WriteHeader(http.StatusOK)
+				if r.Header.Get("User-Agents") != "xxx" {
+					t.Log("xxx not found in the request header")
+					http.Error(w, "header xxx not found", http.StatusMethodNotAllowed)
+				}
 				return
 			}
 

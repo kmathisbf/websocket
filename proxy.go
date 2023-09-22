@@ -17,21 +17,31 @@ import (
 	"golang.org/x/net/proxy"
 )
 
+type netDialer struct {
+	proxyHeader http.Header
+	f           func(network, addr string) (net.Conn, error)
+}
+
 type netDialerFunc func(network, addr string) (net.Conn, error)
 
-func (fn netDialerFunc) Dial(network, addr string) (net.Conn, error) {
-	return fn(network, addr)
+func (n netDialer) Dial(network, addr string) (net.Conn, error) {
+	return n.f(network, addr)
 }
 
 func init() {
 	proxy.RegisterDialerType("http", func(proxyURL *url.URL, forwardDialer proxy.Dialer) (proxy.Dialer, error) {
-		return &httpProxyDialer{proxyURL: proxyURL, forwardDial: forwardDialer.Dial}, nil
+		p, ok := forwardDialer.(*netDialer)
+		if !ok {
+			return nil, errors.New("type assertion failed when ini proxy info")
+		}
+		return &httpProxyDialer{proxyURL: proxyURL, forwardDial: forwardDialer.Dial, proxyHeader: p.proxyHeader}, nil
 	})
 }
 
 type httpProxyDialer struct {
 	proxyURL    *url.URL
 	forwardDial func(network, addr string) (net.Conn, error)
+	proxyHeader http.Header
 }
 
 func (hpd *httpProxyDialer) Dial(network string, addr string) (net.Conn, error) {
@@ -48,6 +58,10 @@ func (hpd *httpProxyDialer) Dial(network string, addr string) (net.Conn, error) 
 			credential := base64.StdEncoding.EncodeToString([]byte(proxyUser + ":" + proxyPassword))
 			connectHeader.Set("Proxy-Authorization", "Basic "+credential)
 		}
+	}
+
+	for k, v := range hpd.proxyHeader {
+		connectHeader[k] = v
 	}
 
 	connectReq := &http.Request{

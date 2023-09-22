@@ -113,6 +113,9 @@ type Dialer struct {
 	// If Jar is nil, cookies are not sent in requests and ignored
 	// in responses.
 	Jar http.CookieJar
+
+	// Custom proxy connect header
+	ProxyConnectHeader http.Header
 }
 
 // Dial creates a new client connection by calling DialContext with a background context.
@@ -310,7 +313,7 @@ func (d *Dialer) DialContext(ctx context.Context, urlStr string, requestHeader h
 			return nil, nil, err
 		}
 		if proxyURL != nil {
-			dialer, err := proxy.FromURL(proxyURL, netDialerFunc(netDial))
+			dialer, err := proxy.FromURL(proxyURL, netDialer{d.ProxyConnectHeader, netDial})
 			if err != nil {
 				return nil, nil, err
 			}
