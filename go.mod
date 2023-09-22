@@ -1,4 +1,4 @@
-module github.com/gorilla/websocket
+module github.com/kmathisbf/websocket
 
 go 1.19
 
