@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/kmathisbf/websocket"
+	"github.com/gorilla/websocket"
 )
 
 const (
